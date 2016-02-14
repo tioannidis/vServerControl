@@ -1,0 +1,41 @@
+<StackPanel ux:Class="Sidebar" Background="#212831">
+
+	<JavaScript>
+		var Observable = require("FuseJS/Observable");
+		var Navigation = require("Navigation");
+		var UserSession = require("UserSession");
+
+		var loggedInVisibilityCollapsed = Observable("Visible");
+		var loggedInVisibilityVisible = Observable("Collapsed");
+
+		UserSession.loggedIn.addSubscriber(function(){
+			if(UserSession.loggedIn.value){
+				loggedInVisibilityCollapsed.value="Collapsed";
+				loggedInVisibilityVisible.value="Visible";
+			}else{
+				loggedInVisibilityCollapsed.value="Visible";
+				loggedInVisibilityVisible.value="Collapsed";
+			}
+		});
+
+		var doLogout = function() {
+			UserSession.clear();
+			Navigation.navigateToLogin();
+		};
+
+		module.exports = {
+			doLogout: doLogout,
+			loggedInVisibilityCollapsed: loggedInVisibilityCollapsed,
+			loggedInVisibilityVisible: loggedInVisibilityVisible,
+			navigateToLogin: Navigation.navigateToLogin,
+			navigateToServerlist: Navigation.navigateToServerlist
+		};
+	</JavaScript>
+
+	<Button Text="Login" Visibility="{loggedInVisibilityCollapsed}" Alignment="Center" Clicked="{navigateToLogin}" />
+
+	<Button Text="Server Liste" Visibility="{loggedInVisibilityVisible}" Alignment="Center" Clicked="{navigateToServerlist}" />
+
+	<Button Text="Logout" Visibility="{loggedInVisibilityVisible}" Alignment="Center" Clicked="{doLogout}" />
+
+</StackPanel>

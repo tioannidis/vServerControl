@@ -1,0 +1,79 @@
+{
+    "BuildDirectory": "build",
+    "CacheDirectory": ".uno",
+    "OutputDirectory": "$(BuildDirectory)/@(Target)/@(Configuration)",
+    "RootNamespace": "$(QIdentifier)",
+    "Version": "2.0.0",
+    "VersionCode": 8,
+    "Title": "vServerControl",
+    "Icon": "Assets/logo.png",
+    "Copyright": "Copyright (C) 2016",
+    "Publisher": "[Tobias Kahl]",
+    "Mobile": {
+        "KeepAlive": false,
+        "ShowStatusbar": true,
+        "RunsInBackground": true,
+        "Orientations": "Auto"
+    },
+    "Android": {
+        "ApplicationLabel": "$(Title)",
+        "VersionCode": "$(VersionCode)",
+        "VersionName": "$(Version)",
+        "Description": "MyDescription",
+        "Icons": {
+            "LDPI": "$(Icon)",
+            "MDPI": "$(Icon)",
+            "HDPI": "$(Icon)",
+            "XHDPI": "$(Icon)",
+            "XXHDPI": "$(Icon)",
+            "XXXHDPI": "$(Icon)"
+        },
+        "NDK": {
+            "PlatformVersion": 9
+        },
+        "SDK": {
+            "BuildToolsVersion": "23.0.1",
+            "CompileVersion": 23,
+            "MinVersion": 15,
+            "TargetVersion": 19
+        }
+    },
+    "HTML": {
+        "Title": "$(Title)",
+        "Favicon": "$(Icon)"
+    },
+    "InternalsVisibleTo": [],
+    "Packages": [
+        "Android",
+        "Experimental.iOS",
+        "Fuse.Android",
+        "Fuse.Animations",
+        "Fuse.BasicTheme",
+        "Fuse.Controls",
+        "Fuse.Designer",
+        "Fuse.Desktop",
+        "Fuse.Drawing",
+        "Fuse.Drawing.Primitives",
+        "Fuse.Effects",
+        "Fuse.Elements",
+        "Fuse.Entities",
+        "Fuse.Gestures",
+        "Fuse.iOS",
+        "Fuse.Navigation",
+        "Fuse.Reactive",
+        "Fuse.Scripting",
+        "Fuse.Shapes",
+        "Fuse.Themes",
+        "Fuse.Triggers",
+        "Fuse.UserEvents",
+        "FuseCore",
+        "ObjC",
+        "Uno.Collections",
+        "Uno.Geometry"
+    ],
+    "Projects": [],
+    "Includes": [
+        "*"
+    ],
+    "Excludes": []
+}

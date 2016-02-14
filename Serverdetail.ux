@@ -1,0 +1,295 @@
+<ScrollView ux:Class="Serverdetail" SnapMinTransform="false">
+
+	<JavaScript>
+		var Observable = require("FuseJS/Observable");
+		var ModalJS = require('ModalJS');
+		var Navigation = require("Navigation");
+		var UIBlocker = require("UIBlocker");
+		var UserSession = require("UserSession");
+
+		var isRefreshing = Observable(false);
+
+		var serverDetailVisible = Observable("Visible");
+		var serverOfflineVisible = Observable("Visible");
+		var serverOnlineVisible = Observable("Visible");
+
+		if(!UserSession.selectedServer.value){
+			serverDetailVisible.value="Collapsed";
+		} else {
+			UserSession.selectedServer.value.status.addSubscriber(function() {
+				if(UserSession.selectedServer.value.status.value == "offline"){
+					serverOnlineVisible.value="Collapsed";
+					serverOfflineVisible.value="Visible";
+				} else {
+					// Online
+					serverOnlineVisible.value="Visible";
+					serverOfflineVisible.value="Collapsed";
+				}
+			});
+			if(UserSession.selectedServer.value.status.value == "offline"){
+				serverOnlineVisible.value="Collapsed";
+			} else {
+				// Online
+				serverOfflineVisible.value="Collapsed";
+			}
+		}
+
+		UserSession.selectedServer.addSubscriber(function() {
+			if(UserSession.selectedServer.value){
+				serverDetailVisible.value="Visible";
+				UserSession.selectedServer.value.status.addSubscriber(function() {
+					if(UserSession.selectedServer.value.status.value == "offline"){
+						serverOnlineVisible.value="Collapsed";
+						serverOfflineVisible.value="Visible";
+					} else {
+						// Online
+						serverOnlineVisible.value="Visible";
+						serverOfflineVisible.value="Collapsed";
+					}
+				});
+			} else {
+				serverDetailVisible.value="Collapsed";
+			}
+		});
+
+		var activateServerdetail = function() {
+			readServerImpl(false);
+			UIBlocker.unblock();
+		}
+
+		var buildStringFromArray = function(pArray) {
+			var lResult = "";
+			for (var i = 0; i < pArray.length; i++) {
+				if(i > 0) {
+					lResult = lResult + "\n";
+				}
+                lResult = lResult + pArray[i];
+            };
+            return lResult;
+		}
+
+		var buildTrafficString = function(pTraffic) {
+			return "In: " + bytesToString(pTraffic.in) + "\nOut: " + bytesToString(pTraffic.out) + "\nTotal: " + bytesToString(pTraffic.total);
+		}
+
+		var bytesToString = function(pBytes) {
+	        var kiloBytes = parseInt(pBytes / 1024);
+	        var megaBytes = parseInt(kiloBytes / 1024);
+	        var gigaBytes = parseInt(megaBytes / 1024);
+	        if (gigaBytes > 0) {
+	            return gigaBytes + " GB";
+	        }
+	        if (megaBytes > 0) {
+	            return megaBytes + " MB";
+	        }
+	        if (kiloBytes > 0) {
+	            return kiloBytes + " KB";
+	        }
+	        return pBytes + " B";
+		}
+
+		var refresh = function() {
+			readServerImpl(true);
+		}
+
+		var readServerImpl = function(pRefresh) {
+			var lServer = UserSession.selectedServer.value;
+			if(lServer) {
+				setLoadStatus(true, pRefresh);
+				var lPromises = new Array();
+				var lServername = lServer.name.value;
+				lPromises.push(UserSession.api.readServerNickname(lServername));
+				lPromises.push(UserSession.api.readServerIps(lServername));
+				lPromises.push(UserSession.api.readServerStatus(lServer.name.value));
+				lPromises.push(UserSession.api.readServerTrafficMonat(lServer.name.value));
+				lPromises.push(UserSession.api.readServerTrafficTag(lServer.name.value));
+				Promise.all(lPromises).then(function(response) {
+					var lNickname = response[0];
+					if(lNickname && lNickname != lServername) {
+						lServer.nickname.value = lNickname;
+						lServer.nameWithNickname.value = lServername + " [" + lNickname + "]";
+					}
+					lServer.ips.value = response[1];
+					lServer.ipsString.value = buildStringFromArray(response[1]);
+					lServer.status.value = response[2];
+					lServer.traffic.monat.value = response[3];
+					lServer.traffic.monatString.value = buildTrafficString(response[3]);
+					lServer.traffic.tag.value = response[4];
+					lServer.traffic.tagString.value = buildTrafficString(response[4]);
+					//
+					setLoadStatus(false, pRefresh);
+				}).catch(function(err) {
+					setLoadStatus(false, pRefresh);
+					ModalJS.showModal(
+						"Fehler beim Lesen der Server-Daten",
+						err.toString(),
+						["OK"],
+						function (action) {
+							Navigation.navigateToLogin();
+						});
+		        });
+	        }
+		};
+
+		var setLoadStatus = function(pStart, pRefresh) {
+			if(pStart){
+				if(pRefresh) {
+					isRefreshing.value = true;
+				} else {
+					UIBlocker.block();
+				}
+			} else {
+				if(pRefresh){
+					isRefreshing.value = false;
+				} else {
+					UIBlocker.unblock();
+				}
+			}
+		}
+
+		var showOKMessageAndUnblock = function(pTitle, pMessage) {
+			UIBlocker.unblock();
+			ModalJS.showModal(
+				"Server gestartet.",
+				"Bitte die Ansicht in einigen Sekunden aktualisieren, um den neuen Status zu berücksichtigen.",
+				["OK"],
+				function (action) {
+					// Nichts tun,...
+				});
+		}
+
+		var startServer = function() {
+			UIBlocker.block();
+			var lServer = UserSession.selectedServer.value;
+			var lServername = lServer.name.value;
+			UserSession.api.actionStart(lServername).then(function(response) {
+				if(response == "true"){
+					showOKMessageAndUnblock("Server gestartet.",
+						"Bitte die Ansicht in einigen Sekunden aktualisieren, um den neuen Status zu berücksichtigen.");
+				} else {
+					showOKMessageAndUnblock("Fehler beim Server-Start.", JSON.stringify(response));	
+				}
+			}).catch(function(err) {
+				showOKMessageAndUnblock("Fehler beim Server-Start.", err.toString());
+	        });
+		}
+
+		var restartServer = function() {
+			UIBlocker.block();
+			var lServer = UserSession.selectedServer.value;
+			var lServername = lServer.name.value;
+			UserSession.api.actionRestart(lServername).then(function(response) {
+				if(response == "true"){ 
+					showOKMessageAndUnblock("Server neugestartet.",
+						"Bitte die Ansicht in einigen Sekunden aktualisieren, um den neuen Status zu berücksichtigen.");
+				} else {
+					showOKMessageAndUnblock("Fehler beim Server-Neustart.", JSON.stringify(response));	
+				}
+			}).catch(function(err) {
+				showOKMessageAndUnblock("Fehler beim Server-Neustart.", err.toString());
+	        });
+		}
+
+		var stopServer = function() {
+			UIBlocker.block();
+			var lServer = UserSession.selectedServer.value;
+			var lServername = lServer.name.value;
+			UserSession.api.actionStop(lServername).then(function(response) {
+				if(response == "true"){
+					showOKMessageAndUnblock("Server gestoppt.",
+						"Bitte die Ansicht in einigen Sekunden aktualisieren, um den neuen Status zu berücksichtigen.");
+				} else {
+					showOKMessageAndUnblock("Fehler beim Server-Stop.", JSON.stringify(response));	
+				}
+			}).catch(function(err) {
+				showOKMessageAndUnblock("Fehler beim Server-Stop.", err.toString());
+	        });
+		}
+
+		var resetServer = function() {
+			UIBlocker.block();
+			var lServer = UserSession.selectedServer.value;
+			var lServername = lServer.name.value;
+			UserSession.api.actionReset(lServername).then(function(response) {
+				if(response == "true"){
+					showOKMessageAndUnblock("Server resettet.",
+						"Bitte die Ansicht in einigen Sekunden aktualisieren, um den neuen Status zu berücksichtigen.");
+				} else {
+					showOKMessageAndUnblock("Fehler beim Server-Reset.", JSON.stringify(response));	
+				}
+			}).catch(function(err) {
+				showOKMessageAndUnblock("Fehler beim Server-Reset.", err.toString());
+	        });
+		}
+
+		var powerOffServer = function() {
+			UIBlocker.block();
+			var lServer = UserSession.selectedServer.value;
+			var lServername = lServer.name.value;
+			UserSession.api.actionStart(lServername).then(function(response) {
+				if(response == "true"){
+					showOKMessageAndUnblock("Server herungerfahren.",
+						"Bitte die Ansicht in einigen Sekunden aktualisieren, um den neuen Status zu berücksichtigen.");
+				} else {
+					showOKMessageAndUnblock("Fehler beim Server-PowerOff.", JSON.stringify(response));	
+				}
+			}).catch(function(err) {
+				showOKMessageAndUnblock("Fehler beim Server-PowerOff.", err.toString());
+	        });
+		}
+
+		module.exports = {
+			activateServerdetail: activateServerdetail,
+			isRefreshing: isRefreshing,
+			powerOffServer: powerOffServer,
+			refresh: refresh,
+			resetServer: resetServer,
+			restartServer: restartServer,
+			server: UserSession.selectedServer,
+			serverDetailVisible: serverDetailVisible,
+			serverOfflineVisible: serverOfflineVisible,
+			serverOnlineVisible: serverOnlineVisible,
+			startServer: startServer,
+			stopServer: stopServer
+		};
+	</JavaScript>
+	<WhileActive>
+		<Callback Handler="{activateServerdetail}"/>
+		<Change serverContent.Visibility="Visible"/>
+    </WhileActive>
+	<DockPanel ux:Name="serverContent" Visibility="Collapsed" Margin="15">
+		<CogWheelReload Dock="Top" />
+		<StackPanel>
+			<WhileEmpty Items="{server}">
+			    <Text Margin="0,15,0,15" TextColor="#FF0000">Keine Server ausgewählt!</Text>
+			</WhileEmpty>
+			<Select Data="{server}">
+				<StackPanel Visibility="{serverDetailVisible}">
+					<Grid RowCount="6" ColumnCount="2" Columns="auto,1*" Rows="auto,auto,auto,auto,auto,auto" >
+						<Text Value="Name: " Margin="0,10,0,0" />
+						<Text Value="{name}" Margin="0,10,0,0" />
+						<Text Value="Alias: " Margin="0,10,0,0" />
+						<Text Value="{nickname}" Margin="0,10,0,0" />
+						<Text Value="IPs: " Margin="0,10,0,0" />
+						<Text Value="{ipsString}" Margin="0,10,0,0" />
+						<Text Value="Status: " Margin="0,10,0,0" />
+						<Text Value="{status}" Margin="0,10,0,0" />
+						<Text Value="Traffic (Monat): " Margin="0,10,0,0" />
+						<Text Value="{traffic.monatString}" Margin="0,10,0,0" />
+						<Text Value="Traffic (Tag): " Margin="0,10,0,0" />
+						<Text Value="{traffic.tagString}" Margin="0,10,0,0" />
+					</Grid>
+					<StackPanel Orientation="Horizontal" Margin="0,25,0,0">
+						<Button Text="Start" Alignment="Center" Clicked="{startServer}" Visibility="{serverOfflineVisible}"/>
+						<Button Text="Restart" Alignment="Center" Clicked="{restartServer}" Visibility="{serverOnlineVisible}" />
+						<Button Text="PowerOff" Alignment="Center" Clicked="{powerOffServer}" Visibility="{serverOnlineVisible}" />
+					</StackPanel>
+					<StackPanel Orientation="Horizontal">
+						<Button Text="Reset" Alignment="Center" Clicked="{resetServer}" Visibility="{serverOnlineVisible}" />
+						<Button Text="Stop" Alignment="Center" Clicked="{stopServer}" Visibility="{serverOnlineVisible}" />
+					</StackPanel>
+				</StackPanel>
+			</Select>
+		</StackPanel>
+    </DockPanel>
+</ScrollView>

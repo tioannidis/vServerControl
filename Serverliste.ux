@@ -1,0 +1,146 @@
+<ScrollView ux:Class="Serverliste" SnapMinTransform="false">
+
+	<JavaScript>
+		var Observable = require("FuseJS/Observable");
+		var ModalJS = require('ModalJS');
+		var Navigation = require("Navigation");
+		var UIBlocker = require("UIBlocker");
+		var UserSession = require("UserSession");
+
+		var isRefreshing = Observable(false);
+		var servers = Observable();
+
+		var activateServerlist = function() {
+			readServerlistImpl(false);
+			UIBlocker.unblock();
+		}
+
+		var refresh = function() {
+			readServerlistImpl(true);
+		}
+
+		var readServerlistImpl = function(pRefresh) {
+			setLoadStatus(true, pRefresh);
+			UserSession.api.readServerNames().then(function(response) {
+				var lServerPromises = new Array();
+				for (var i = 0; i < response.length; i++) {
+					lServerPromises.push(createServer(response[i]));
+				}
+				Promise.all(lServerPromises).then(function(response) {
+					var lServerArray = [];
+					var lRoot = new Object();
+					lRoot.serverArray = response;
+					servers.value = lRoot;
+					setLoadStatus(false, pRefresh);
+				}).catch(function(err) {
+					setLoadStatus(false, pRefresh);
+					ModalJS.showModal(
+						"Fehler beim Lesen der Server-Daten",
+						err.toString(),
+						["OK"],
+						function (action) {
+							Navigation.navigateToLogin();
+						});
+		        });
+			}).catch(function(err) {
+				setLoadStatus(false, pRefresh);
+				ModalJS.showModal(
+					"Fehler beim Lesen der ServerListe",
+					err.toString(),
+					["OK"],
+					function (action) {
+						Navigation.navigateToLogin();
+					});
+	        });
+		};
+
+		var createServer = function(pServerName) {
+		    return new Promise(function(resolve, reject) {
+				var lServer = new Object();
+				lServer.name = Observable(pServerName);
+				lServer.nameWithNickname = Observable(pServerName);
+				//
+				var lReadNickname = UserSession.api.readServerNickname(pServerName);
+				//
+				Promise.all([lReadNickname]).then(function(response) {
+					var lNickname = response[0];
+					lServer.nickname = Observable();
+					if(lNickname && lNickname != pServerName) {
+						lServer.nickname.value = lNickname;
+						lServer.nameWithNickname.value = pServerName + " [" + lNickname + "]";
+					}
+					//
+					lServer.ips = Observable();
+					lServer.ipsString = Observable();
+					lServer.status = Observable();
+					lServer.traffic = new Object();
+					lServer.traffic.monat = Observable();
+					lServer.traffic.monatString = Observable();
+					lServer.traffic.tag = Observable();
+					lServer.traffic.tagString = Observable();
+					//
+					resolve(lServer);
+				}).catch(function(err) {
+	           		reject(err);
+		        });
+		    });
+		}
+
+		var openServerdetail = function(pSender) {
+			UserSession.selectedServer.value = pSender.data;
+			Navigation.navigateToServerdetail();
+		}
+
+		var setLoadStatus = function(pStart, pRefresh) {
+			if(pStart){
+				if(pRefresh){
+					isRefreshing.value = true;
+				} else {
+					UIBlocker.block();
+				}
+			} else {
+				if(pRefresh){
+					isRefreshing.value = false;
+				} else {
+					UIBlocker.unblock();
+				}
+			}
+		}
+
+		module.exports = {
+			activateServerlist: activateServerlist,
+			isRefreshing: isRefreshing,
+			openServerdetail: openServerdetail,
+			refresh: refresh,
+			servers: servers
+		};
+	</JavaScript>
+	<WhileActive>
+		<Callback Handler="{activateServerlist}"/>
+		<Change serverListeContent.Visibility="Visible"/>
+    </WhileActive>
+	<DockPanel ux:Name="serverListeContent" Visibility="Collapsed">
+		<CogWheelReload Dock="Top" />
+		<StackPanel>
+			<WhileEmpty Items="{servers}">
+			    <Text Margin="0,15,0,15">Keine Server gefunden!</Text>
+				<HorizontalBar />
+			</WhileEmpty>
+			<Panel ux:Class="HorizontalBar" Alignment="VerticalCenter">
+				<Rectangle Height="1" Fill="#6A6A6A" />
+			</Panel>
+			<Each Items="{servers.serverArray}">
+				<Panel ux:Name="serverPanel" Padding="15,15,15,15">
+					<Text Value="{nameWithNickname}" />
+					<Clicked>
+				        <Callback Handler="{openServerdetail}"/>
+				    </Clicked>
+				    <WhilePressed>
+				        <Scale Target="serverPanel" Factor="0.95" Duration="0.05"/>
+				    </WhilePressed>
+				</Panel>
+				<HorizontalBar />
+	        </Each>
+		</StackPanel>
+    </DockPanel>
+</ScrollView>
