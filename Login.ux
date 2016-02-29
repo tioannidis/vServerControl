@@ -1,40 +1,105 @@
 <ScrollView ux:Class="Login">
 
 	<JavaScript>
+		var Aspect = require("Aspect");
+		var Direktor = require('Direktor');
 		var Navigation = require("Navigation");
 		var NetcupApi = require("NetcupApi");
 		var Observable = require("FuseJS/Observable");
 		var UIBlocker = require("UIBlocker");
 		var UserSession = require("UserSession");
+		var Storage = require('FuseJS/Storage');
+
+		var fileNameAutoLogin = "logindata.txt";
 
 		var autologin = Observable(false);
 		var errorTxt = Observable();
 		var netcupLabs = Observable(false);
 
+		var activateLogin = function() {
+			debug_log("Login-activateLogin");
+			UIBlocker.block();
+			autologin.value = false;
+			Storage.read(fileNameAutoLogin).then(function(content) {
+				debug_log("doAutoLogin: " + content);
+				var lAccount = JSON.parse(content);
+				UserSession.username.value = lAccount.username;
+				UserSession.passwort.value = lAccount.passwort;
+				netcupLabs.value = lAccount.netcupLabs;
+				doLoginImpl(true);
+				//
+				UIBlocker.unblock();
+			}, function(error) {
+				debug_log(error);
+				UIBlocker.unblock();
+				removeAutologin();
+			});
+		}
+
 		var doLogin = function() {
+			doLoginImpl(false);
+		}
+
+		var doLoginImpl = function(pAutoLogin) {
+			debug_log("Login-doLogin: " + pAutoLogin);
 			if (UserSession.username.value == ""
 				|| UserSession.passwort.value == "") {
 				errorTxt.value = "Bitte geben Sie Username und Passwort ein.";
 			} else {
 				UIBlocker.block();
-				if(netcupLabs.value){
-					UserSession.api = new NetcupApi.NetcupApi("https://vcptest.netcup.net/WSEndUser");
-				} else {
-					UserSession.api = new NetcupApi.NetcupApi("https://www.vservercontrolpanel.de/WSEndUser");
-				}
-				UserSession.api.readServerNames().then(function(response) {
+				setApiToSession(netcupLabs.value);
+				Direktor.getServerliste(false).then(function(response) {
 					UserSession.loggedIn.value = true;
+					if(autologin.value && !pAutoLogin) {
+						// Wenn in einem "normalen" Login das Autologin ausgewält wurde,
+						// dann diese Daten jetzt speichern
+						writeAutologin();
+					}
 					errorTxt.value = "";
-					Navigation.navigateToServerlist();
+					if(Aspect.landscape.value) {
+						Navigation.navigateToServerlisteMitDetail();
+					} else {
+						// Portrait
+						Navigation.navigateToServerliste();
+					}
 					UIBlocker.unblock();
-				}).catch(function(err) {
+				}).catch(function(error) {
+					debug_log(error);
+					if(pAutoLogin) {
+						removeAutologin();
+					}
 					UIBlocker.unblock();
 					errorTxt.value = err.toString();
 		        });
 			}	
 		};
 
+		var removeAutologin = function() {
+			debug_log("removeAutologin");
+			Storage.deleteSync(fileNameAutoLogin);
+		}
+
+		var setApiToSession = function(pNetcupLabs) {
+			if(pNetcupLabs) {
+				UserSession.api = new NetcupApi.NetcupApi("https://vcptest.netcup.net/WSEndUser");
+			} else {
+				UserSession.api = new NetcupApi.NetcupApi("https://www.vservercontrolpanel.de/WSEndUser");
+			}
+		}
+
+		var writeAutologin = function() {
+			var lAccount = new Object();
+			lAccount.username = UserSession.username.value;
+			lAccount.passwort = UserSession.passwort.value;
+			lAccount.netcupLabs = netcupLabs.value;
+			//
+			debug_log("writeAutologin - " + JSON.stringify(lAccount));
+			Storage.write(fileNameAutoLogin, JSON.stringify(lAccount));
+		}
+
 		module.exports = {
+			activateLogin: activateLogin,
+			autologin: autologin,
 			error: errorTxt,
 			netcupLabs: netcupLabs,
 			username: UserSession.username,
@@ -43,12 +108,14 @@
 		};
 	</JavaScript>
 
-	<StackPanel Margin="15">
-		<Text FontSize="20" Value="Hinweis:" Margin="0,0,0,10"/>
-		<Text TextWrapping="Wrap" Value="Diese Version von 'vServerControl' unterstützt bisher lediglich die Webservice-API des Hosters 'netcup'." />
-		<Text TextWrapping="Wrap" Value="Auf Nachfrage könnten aber beliebige Hoster ebenfalls mit aufgenommen werden." Margin="0,10,0,0"/>
+	<WhileActive>
+		<Callback Handler="{activateLogin}"/>
+		<Change loginContent.Visibility="Visible"/>
+    </WhileActive>
 
-		<Text Value="{error}" TextWrapping="Wrap" TextColor="#FF0000" Margin="15,25,0,10" />
+	<StackPanel ux:Name="loginContent" Visibility="Collapsed" Margin="15">
+
+		<Text Value="{error}" TextWrapping="Wrap" TextColor="#FF0000" Margin="15,0,0,10" />
 		<Text Value="Username:" />
 		<TextInput Value="{username}" />
 		<Text Value="Passwort:" Margin="0,10,0,0" />
@@ -61,12 +128,13 @@
 			<Switch Value="{autologin}" Alignment="CenterLeft" Margin="15,0,0,0" />
 		</Grid>
 
-		<Button ux:Name="loginButton" Text="Login" Width="150" Alignment="Left" Margin="0,25,0,0">
+		<FaIconButton Icon="&#xf090;" Text="Login" Width="150" Alignment="Left" Margin="0,25,0,0" >
 			<Clicked Handler="{doLogin}" />
-			<WhilePressed>
-				<Scale Target="loginButton" Factor="0.9" Duration="0.05" />
-			</WhilePressed>
-		</Button>
+		</FaIconButton>
+
+		<Text FontSize="20" Value="Hinweis:" Margin="0,50,0,10"/>
+		<Text TextWrapping="Wrap" Value="Diese Version von 'vServerControl' unterstützt bisher lediglich die Webservice-API des Hosters 'netcup'." />
+		<Text TextWrapping="Wrap" Value="Auf Nachfrage könnten aber beliebige Hoster ebenfalls mit aufgenommen werden." Margin="0,10,0,0"/>
 
 	</StackPanel>
 

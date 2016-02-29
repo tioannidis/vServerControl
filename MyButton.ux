@@ -1,0 +1,20 @@
+<Panel ux:Class="MyButton" ux:Name="root" TextAlignment="Center" FontSize="16" TextColor="#FFFFFF" HitTestMode="LocalBoundsAndChildren" Margin="5" >
+
+	<string ux:Property="Text" />
+	<float ux:Property="FontSize" />
+	<float4 ux:Property="TextColor" />
+	<Alignment ux:Property="TextAlignment" />
+
+	<DockPanel Alignment="{Property root.TextAlignment}" >
+		<Text Margin="10" Value="{Property root.Text}" Alignment="CenterLeft" TextColor="{Property root.TextColor}" FontSize="{Property root.FontSize}" />
+	</DockPanel>
+
+	<Rectangle CornerRadius="5" Fill="#039BE5" ux:Name="backgroundRectangle">
+	    <DropShadow />
+	</Rectangle>
+
+	<WhilePressed>
+		<Scale Target="root" Factor="0.95" Duration="0.05" />
+	</WhilePressed>
+
+</Panel>

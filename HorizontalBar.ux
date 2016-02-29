@@ -1,0 +1,3 @@
+<Panel ux:Class="HorizontalBar" Alignment="VerticalCenter">
+	<Rectangle Height="1" Fill="#6A6A6A" />
+</Panel>

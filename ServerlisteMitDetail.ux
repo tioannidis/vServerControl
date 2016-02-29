@@ -1,0 +1,278 @@
+<Panel ux:Class="ServerlisteMitDetail">
+
+	<JavaScript>
+		var Direktor = require('Direktor');
+		var Observable = require("FuseJS/Observable");
+		var ModalJS = require('ModalJS');
+		var Navigation = require("Navigation");
+		var UIBlocker = require("UIBlocker");
+		var UserSession = require("UserSession");
+
+		var isListRefreshing = Observable(false);
+		var isServerRefreshing = Observable(false);
+
+		var server = Observable();
+		var serverDetailVisible = Observable("Collapsed");
+		var serverOfflineVisible = Observable("Collapsed");
+		var serverOnlineVisible = Observable("Collapsed");
+		var servers = Observable(new Object());
+		servers.value.serverArray = Observable();
+
+		var serverObserver = function() {
+			if(server.value){
+				serverDetailVisible.value="Visible";
+			} else {
+				serverDetailVisible.value="Collapsed";
+			}
+		};
+
+		var serverStatusObserver = function() {
+			if (server.value) {
+				if(server.value.status.value == "offline"){
+					serverOnlineVisible.value="Collapsed";
+					serverOfflineVisible.value="Visible";
+				} else {
+					// Online
+					serverOnlineVisible.value="Visible";
+					serverOfflineVisible.value="Collapsed";
+				}
+			}	
+		};
+		
+		server.addSubscriber(serverObserver);
+		if(UserSession.selectedServer.value) {
+			server.value = UserSession.selectedServer.value;
+		}
+		UserSession.selectedServer.addSubscriber(function() {
+			if(server.value) {
+				server.value.status.removeSubscriber(serverStatusObserver);
+			}
+			server.value = UserSession.selectedServer.value;
+			if(server.value) {
+				server.value.status.addSubscriber(serverStatusObserver);
+			}
+		});
+
+		var activateServerlistMitDetail = function() {
+			readServerlistImpl(false, function() {
+				if(UserSession.selectedServer.value
+					&& !UserSession.selectedServer.value.gelesen) {
+					readServerImpl(false);
+				}
+			});
+			UIBlocker.unblock();
+		}
+
+		var isRefreshing = Observable(function(){
+			return isListRefreshing.value || isServerRefreshing.value;
+		});
+
+		var isServerListeEquals = function(pObservable, pArray2) {
+			if(pObservable.length != pArray2.length){
+				return false;
+			}
+			for (var i = pObservable.length - 1; i >= 0; i--) {
+				if(pObservable.getAt(i).nameWithNickname.value != pArray2[i].nameWithNickname.value){
+					return false;
+				}
+			}
+			return true;
+		}
+
+		var openServerdetail = function(pSender) {
+			UserSession.selectedServer.value = pSender.data;
+			readServerImpl(false);
+		}
+
+		var readServerlistImpl = function(pRefresh, pSuccessCallback) {
+			setLoadStatusList(true, pRefresh);
+			Direktor.getServerliste(pRefresh).then(function(response) {
+				if(!isServerListeEquals(servers.value.serverArray, response)) {
+					servers.value.serverArray.replaceAll(response);
+				}
+				if(pSuccessCallback) {
+					pSuccessCallback();
+				}
+				setLoadStatusList(false, pRefresh);
+			}).catch(function(err) {
+				setLoadStatusList(false, pRefresh);
+				ModalJS.showModal(
+					"Fehler beim Lesen der ServerListe",
+					err.toString(),
+					["OK"],
+					function (action) {
+						Navigation.navigateToLogin();
+					});
+	        });
+		};
+
+		var readServerImpl = function(pRefresh) {
+			setLoadStatusServer(true, pRefresh);
+			var lServer = UserSession.selectedServer.value;
+			Direktor.readServer(lServer, pRefresh).then(function(response) {
+				setLoadStatusServer(false, pRefresh);
+			}).catch(function(err) {
+				setLoadStatusServer(false, pRefresh);
+				ModalJS.showModal(
+					"Fehler beim Lesen der Server-Daten",
+					err.toString(),
+					["OK"],
+					function (action) {
+						Navigation.navigateToLogin();
+					});
+	        });
+		};
+
+		var refresh = function(pQuelle) {
+			if(pQuelle.sender == "CogWheelReloadList") {
+				readServerlistImpl(true, function() {} );
+			} else {
+				readServerImpl(true);
+			}
+		}
+
+		var setLoadStatusList = function(pStart, pRefresh) {
+			if(pStart){
+				if(pRefresh){
+					isListRefreshing.value = true;
+				} else {
+					UIBlocker.block();
+				}
+			} else {
+				if(pRefresh){
+					isListRefreshing.value = false;
+				} else {
+					UIBlocker.unblock();
+				}
+			}
+		}
+
+		var setLoadStatusServer = function(pStart, pRefresh) {
+			if(pStart){
+				if(pRefresh){
+					isServerRefreshing.value = true;
+				} else {
+					UIBlocker.block();
+				}
+			} else {
+				if(pRefresh){
+					isServerRefreshing.value = false;
+				} else {
+					UIBlocker.unblock();
+				}
+			}
+		}
+
+		module.exports = {
+			activateServerlistMitDetail: activateServerlistMitDetail,
+			isRefreshing: isRefreshing,
+			isListRefreshing: isListRefreshing,
+			isServerRefreshing: isServerRefreshing,
+			openServerdetail: openServerdetail,
+			powerOffServer: function(){ Direktor.powerOffServer(UserSession.selectedServer.value) },
+			refresh: refresh,
+			resetServer: function(){ Direktor.resetServer(UserSession.selectedServer.value) },
+			restartServer: function(){ Direktor.restartServer(UserSession.selectedServer.value) },
+			server: UserSession.selectedServer,
+			servers: servers,
+			serverDetailVisible: serverDetailVisible,
+			serverOfflineVisible: serverOfflineVisible,
+			serverOnlineVisible: serverOnlineVisible,
+			startServer: function(){ Direktor.startServer(UserSession.selectedServer.value) },
+			stopServer: function(){ Direktor.stopServer(UserSession.selectedServer.value) }
+		};
+	</JavaScript>
+	
+	<WhileActive>
+		<Callback Handler="{activateServerlistMitDetail}"/>
+		<Change serverListeContent.Visibility="Visible"/>
+		<Change serverContent.Visibility="Visible"/>
+    </WhileActive>
+
+    <WhileTrue Value="{isListRefreshing}">
+		<Change CogWheelReloadServer.Visibility="Collapsed" DurationBack="0.55" />
+	</WhileTrue>
+
+    <WhileTrue Value="{isServerRefreshing}">
+		<Change CogWheelReloadList.Visibility="Collapsed" DurationBack="0.55" />
+	</WhileTrue>
+
+	<DockPanel>
+	    <ScrollView ux:Name="serverListeContent" Dock="Left" Visibility="Collapsed" SnapMinTransform="false">
+	    	<DockPanel>
+				<CogWheelReload Dock="Top" Text="Pull to Reload" ux:Name="CogWheelReloadList" />
+				<StackPanel>
+					<WhileEmpty Items="{servers.serverArray}">
+					    <Text Margin="0,15,0,15">Keine Server gefunden!</Text>
+						<HorizontalBar />
+					</WhileEmpty>
+					<Each Items="{servers.serverArray}">
+						<StackPanel ux:Name="serverPanel" Padding="15,15,15,15">
+							<Text Value="{name}" />
+							<StackPanel Orientation="Horizontal">
+								<Text Value="[" />
+								<Text Value="{nickname}" />
+								<Text Value="]" />
+							</StackPanel>
+							<Clicked>
+						        <Callback Handler="{openServerdetail}"/>
+						    </Clicked>
+						    <WhilePressed>
+						        <Scale Target="serverPanel" Factor="0.95" Duration="0.05"/>
+						    </WhilePressed>
+						</StackPanel>
+						<HorizontalBar />
+			        </Each>
+				</StackPanel>
+			</DockPanel>
+		</ScrollView>
+	    <ScrollView ux:Name="serverContent" Visibility="Collapsed" SnapMinTransform="false">
+	    	<DockPanel>
+				<CogWheelReload Dock="Top" Text="Pull to Reload" ux:Name="CogWheelReloadServer" />
+				<StackPanel Margin="15">
+					<WhileEmpty Items="{server}">
+					    <Text Margin="0,15,0,15" TextColor="#FF0000">Keine Server ausgewählt!</Text>
+					</WhileEmpty>
+					<Select Data="{server}">
+						<StackPanel Visibility="{serverDetailVisible}">
+							<Grid RowCount="6" ColumnCount="2" Columns="auto,1*" Rows="auto,auto,auto,auto,auto,auto" >
+								<Text Value="Name: " Margin="0,10,0,0" />
+								<Text Value="{name}" Margin="0,10,0,0" />
+								<Text Value="Alias: " Margin="0,10,0,0" />
+								<Text Value="{nickname}" Margin="0,10,0,0" />
+								<Text Value="IPs: " Margin="0,10,0,0" />
+								<Text Value="{ipsString}" Margin="0,10,0,0" />
+								<Text Value="Status: " Margin="0,10,0,0" />
+								<Text Value="{status}" Margin="0,10,0,0" />
+								<Text Value="Traffic (Monat): " Margin="0,10,0,0" />
+								<Text Value="{traffic.monatString}" Margin="0,10,0,0" />
+								<Text Value="Traffic (Tag): " Margin="0,10,0,0" />
+								<Text Value="{traffic.tagString}" Margin="0,10,0,0" />
+							</Grid>
+							<StackPanel Orientation="Horizontal" Margin="0,25,0,0">
+								<FaIconButton Icon="&#xf011;"  Text="Start" Width="120" Alignment="Center" TextAlignment="Left" Visibility="{serverOfflineVisible}" >
+									<Clicked Handler="{startServer}" />
+								</FaIconButton>
+								<FaIconButton Icon="&#xf021;"  Text="Restart" Width="120" Alignment="Center" TextAlignment="Left" Visibility="{serverOnlineVisible}" >
+									<Clicked Handler="{restartServer}" />
+								</FaIconButton>
+								<FaIconButton Icon="&#xf011;"  Text="PowerOff" Width="120" Alignment="Center" TextAlignment="Left" Visibility="{serverOnlineVisible}" >
+									<Clicked Handler="{powerOffServer}" />
+								</FaIconButton>
+							</StackPanel>
+							<StackPanel Orientation="Horizontal">
+								<FaIconButton Icon="&#xf1da;"  Text="Reset" Width="120" Alignment="Center" TextAlignment="Left" Visibility="{serverOnlineVisible}" >
+									<Clicked Handler="{resetServer}" />
+								</FaIconButton>
+								<FaIconButton Icon="&#xf28e;"  Text="Stop" Width="120" Alignment="Center" TextAlignment="Left" Visibility="{serverOnlineVisible}" >
+									<Clicked Handler="{stopServer}" />
+								</FaIconButton>
+							</StackPanel>
+						</StackPanel>
+					</Select>
+				</StackPanel>
+			</DockPanel>
+		</ScrollView>
+	</DockPanel>
+
+</Panel>

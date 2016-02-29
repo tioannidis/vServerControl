@@ -8,17 +8,17 @@ var block = function() {
 		ui_blocked.value = true;
 	}
 	counter++;
+	debug_log("UIBlocker-block: " + counter);
 };
 
 var unblock = function() {
-	if(counter <= 0){
-		throw new Error("Die UI ist aktuell nicht geblockt!");
-	} else {
+	if(counter > 0){
 		counter--;
 		if(counter == 0 && ui_blocked.value){
 			ui_blocked.value = false;
 		}
 	}
+	debug_log("UIBlocker-unblock: " + counter);
 };
 
 module.exports = {

@@ -1,9 +1,14 @@
 <App Theme="Basic" Background="#DCDCDC">
 
+	<!-- Font-Import -->
+	<Font File="Assets/fontawesome-webfont.ttf" ux:Global="fontawesome" />
+
 	<!-- UNO-Import -->
 	<ModalJS ux:Global="ModalJS" />
 
 	<!-- JavaScript-Import -->
+	<JavaScript File="Aspect.js" ux:Global="Aspect" />
+	<JavaScript File="Direktor.js" ux:Global="Direktor" />
 	<JavaScript File="Marknote/marknote.js" ux:Global="Marknote" />
 	<JavaScript File="Navigation.js" ux:Global="Navigation" />
 	<JavaScript File="NetcupApi.js" ux:Global="NetcupApi" />
@@ -14,7 +19,12 @@
 	<!-- Image-Import -->
 	<Image ux:Class="Logo_Small" File="Assets/logo.png" Width="32" Height="32" />
 
+	<!-- Konstanten anlegen -->	
+	<string ux:Key="topMenuTitel" ux:Value="vServerControl" />
+
+	<!-- UI-JavaScript erstellen -->	
 	<JavaScript>
+		var Aspect = require("Aspect");
 		var Observable = require("FuseJS/Observable");
 		var Navigation = require("Navigation");
 		var UIBlocker = require("UIBlocker");
@@ -22,118 +32,127 @@
 		module.exports = {
 			active_page: Navigation.active_page,
 			active_sidebar: Navigation.active_sidebar,
+			aspect_setLandscape: Aspect.setLandscape,
+			aspect_setPortrait: Aspect.setPortrait,
+			disableTopMenueSidebar: Navigation.disableTopMenueSidebar,
 			toggleTopMenueSidebar: Navigation.toggleTopMenueSidebar,
 			ui_blocked: UIBlocker.ui_blocked
 		};
 	</JavaScript>
 
-	<!-- Konstanten anlegen -->	
-	<string ux:Key="topMenuTitel" ux:Value="vServerControl" />
+	<!-- UI erstellen -->	
+	<ClientPanel ux:Name="clientPanel">
 
-	<DockPanel>
+		<!-- Aspect-Change-Listener konfigurieren -->
+		<WhileWindowLandscape Bypass="Never">
+			<Callback Handler="{aspect_setLandscape}"/>
+		</WhileWindowLandscape>
+		<WhileWindowPortrait Bypass="Never">
+			<Callback Handler="{aspect_setPortrait}"/>
+		</WhileWindowPortrait>
 
 		<!-- StatusBar konfigurieren -->
         <iOS.StatusBarConfig Style="Light" IsVisible="true" />
-        <StatusBarBackground Dock="Top" />
-	    <BottomBarBackground Dock="Bottom" />
 
-		<!-- EdgeNavigation aktivieren -->
-		<EdgeNavigator ux:Name="EdgeNavigator" Active="{active_sidebar}">
+	    <!-- Sidebar -->
+		<WhileTrue Value="{active_sidebar}">
+			<Change sidebar.Visibility="Visible" />
+			<Change sidebarTranslation.X="0" Duration="0.25"/>
+		    <Change mainAppTranslation.X="180" Duration="0.25"/>
+		</WhileTrue>
+	    <Sidebar Width="180" ux:Name="sidebar" Alignment="Left" Visibility="Collapsed">
 
-		    <!-- Sidebar -->
-		    <Sidebar Width="180" ux:Name="menu" EdgeNavigation.Edge="Left">
+		    <Translation ux:Name="sidebarTranslation" RelativeNode="clientPanel" X="-180" />
 
-			    <ActivatingAnimation>
-			        <Change mainAppTranslation.X="180" />
-			        <!-- Change to cross out -->
-			        <Change topMenuTranslation.Y="0" />
-			        <Change bottomMenuTranslation.Y="0" />
-			        <Change middleRectangle.Opacity="0" Easing="CircularOut" />
-			        <Change topMenuRotation.Degrees="45" Easing="ExponentialIn" />
-			        <Change bottomMenuRotation.Degrees="-45" Easing="ExponentialIn" />
-			        <Change topRectangle.Width="28" />
-			        <Change bottomRectangle.Width="28" />
-			    </ActivatingAnimation>
+		</Sidebar>
+	    <!-- /Sidebar -->
 
-			</Sidebar>
-		    <!-- /Sidebar -->
+	    <!-- Hauptanwendung -->
+		<DockPanel Dock="Fill">
 
-		    <!-- Hauptanwendung -->
-			<DockPanel Dock="Fill">
+			<!-- Translation, zum verschieben der MainApp für die Sidebar -->
+			<Translation ux:Name="mainAppTranslation" />
+	    	
+	    	<!-- Top Menue -->
+			<StackPanel Dock="Top">
+				<Grid ColumnData="32,1*,32" Padding="0,0,0,5" Background="#000">
 
-				<!-- Translation, zum verschieben der MainApp für die Sidebar -->
-				<Translation ux:Name="mainAppTranslation" />
-		    	
-		    	<!-- Top Menue -->
-				<StackPanel Dock="Top">
-					<Grid ColumnData="32,1*,32" Padding="0,0,0,5" Background="#000">
-
-						<!-- Menue-Button -->
-						<Panel ux:Name="topMenueButtonPanel" Margin="7,5,5,5" Height="32" Width="32" HitTestMode="LocalBounds">
-							<Clicked Handler="{toggleTopMenueSidebar}" />
-							<Rectangle ux:Name="topRectangle" Height="2" Width="26" Fill="#FFFFFF">
-								<Translation Y="-9" ux:Name="topMenuTranslation" />
-								<Rotation ux:Name="topMenuRotation" />
-							</Rectangle>
-							<Rectangle ux:Name="middleRectangle" Height="2" Width="26" Fill="#FFFFFF" />
-							<Rectangle ux:Name="bottomRectangle" Height="2" Width="26" Fill="#FFFFFF">
-								<Translation Y="9" ux:Name="bottomMenuTranslation" />
-								<Rotation ux:Name="bottomMenuRotation" />
-							</Rectangle>
-						</Panel>
-
-						<!-- Titel -->
-						<Text FontSize="22" Alignment="VerticalCenter" TextAlignment="Center" TextColor="#FFFFFF" Value="{Resource topMenuTitel}" Padding="2" />
-
-						<!-- Logo -->
-						<Logo_Small>
-							<Translation ux:Name="cog2Trans" X="-10" />
-						</Logo_Small>
-					</Grid>
-
-				</StackPanel>
-		    	<!-- /Top Menue -->
-
-		    	<!-- Content -->
-		    	<DockPanel Dock="Fill">
-		    		<Panel ux:Name="loadingCirclePanel" Visibility="Collapsed">
-						<Circle ux:Name="loadingCircle" StartAngleDegrees="0" LengthAngleDegrees="90" Width="60" Height="60">
-							<Stroke Width="4">
-								<SolidColor Color="#183A6F" />
-							</Stroke>
-						</Circle>
+					<!-- Menue-Button -->
+					<Panel ux:Name="topMenueButtonPanel" Margin="15,5,5,5" Height="32" Width="32" HitTestMode="LocalBounds">
+						<Text Font="fontawesome" Value="&#xf0c9;" Alignment="Center" TextColor="#FFFFFF" FontSize="36" />
+						<Clicked Handler="{toggleTopMenueSidebar}" />
 					</Panel>
-					<PageControl ux:Name="mainContent" Active="{active_page}">
-						<Rectangle Height="100%" />
-						<!-- Login-Page -->
-						<Page Name="Login">
-							<Login />
-						</Page>
 
-						<!-- Serverdetail-Page -->
-						<Page Name="Serverdetail">
-							<Serverdetail />
-						</Page>
+					<!-- Titel -->
+					<Text FontSize="22" Alignment="VerticalCenter" TextAlignment="Center" TextColor="#FFFFFF" Value="{Resource topMenuTitel}" Padding="2" />
 
-						<!-- Serverlist-Page -->
-						<Page Name="Serverlist">
-							<Serverliste />
-						</Page>
-					</PageControl>
-					<WhileTrue Value="{ui_blocked}">
-						<Change topMenueButtonPanel.Visibility="Hidden" />
-						<Spin Target="loadingCircle" Frequency="2" />
-						<Cycle Target="loadingCircle.LengthAngleDegrees" Low="30" High="300" Frequency="0.7" />
-						<Change loadingCirclePanel.Visibility="Visible" />
-						<Change mainContent.Visibility="Collapsed" />
-					</WhileTrue>
-		    	</DockPanel>
-		    	<!-- /Content -->
+					<!-- Logo -->
+					<Logo_Small>
+						<Translation ux:Name="cog2Trans" X="-10" />
+					</Logo_Small>
+				</Grid>
 
-		    </DockPanel>
-		    <!-- /Hauptanwendung -->
+			</StackPanel>
+	    	<!-- /Top Menue -->
 
-		</EdgeNavigator>
+	    	<!-- Content -->
+	    	<DockPanel Dock="Fill">
+	    		
+	    		<!-- Bei einem Klick in den Content-Bereich die Sidebar immer schließen -->
+	    		<Clicked Handler="{disableTopMenueSidebar}" />
+
+	    		<!-- Loading-Circle erstellen (im Default Collapsed) -->
+	    		<Panel ux:Name="loadingCirclePanel" Visibility="Collapsed">
+					<Circle ux:Name="loadingCircle" StartAngleDegrees="0" LengthAngleDegrees="90" Width="60" Height="60">
+						<Stroke Width="4">
+							<SolidColor Color="#183A6F" />
+						</Stroke>
+					</Circle>
+				</Panel>
+				
+				<!--
+				 - PageControl erzeugen - 
+				Hier müssen alle in der Anwendung verwendeten Pages regisriert werden.
+				Die Navigation in die entsprechenden Seiten erfolgt über die Klasse Navigation.
+				 -->
+				<PageControl ux:Name="mainContent" Active="{active_page}"> 
+					<Rectangle Height="100%" />
+
+					<!-- Login-Page -->
+					<Page Name="Login">
+						<Login />
+					</Page>
+
+					<!-- Serverdetail-Page -->
+					<Page Name="Serverdetail">
+						<Serverdetail />
+					</Page>
+
+					<!-- Serverlist-Page -->
+					<Page Name="Serverlist">
+						<Serverliste />
+					</Page>
+
+					<!-- Serverliste-Mit-Detail-Page -->
+					<Page Name="ServerlisteMitDetail">
+						<ServerlisteMitDetail />
+					</Page>
+					
+				</PageControl>
+
+				<WhileTrue Value="{ui_blocked}">
+					<Change topMenueButtonPanel.Visibility="Hidden" />
+					<Spin Target="loadingCircle" Frequency="2" />
+					<Cycle Target="loadingCircle.LengthAngleDegrees" Low="30" High="300" Frequency="0.7" />
+					<Change loadingCirclePanel.Visibility="Visible" />
+					<Change mainContent.Visibility="Collapsed" />
+				</WhileTrue>
+
+	    	</DockPanel>
+	    	<!-- /Content -->
+
+	    </DockPanel>
+	    <!-- /Hauptanwendung -->
 		    
-    </DockPanel>
+    </ClientPanel>
 </App>

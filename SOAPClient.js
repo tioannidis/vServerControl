@@ -148,6 +148,7 @@ SOAPClientParameters._serialize = function(t, o)
 function SOAPClient() {}
  
 SOAPClient.prototype.invoke = function(url, method, parameters) {
+    debug_log("SOAPClient-invoke: " + url + " - " + method);
     return new Promise(function(resolve, reject) {
         SOAPClient._getWsdl(url).then(function(response) {
             resolve(SOAPClient._sendSoapRequest(url, method, parameters, response));
@@ -195,10 +196,11 @@ SOAPClient._getWsdl = function(url) {
     return new Promise(function(resolve, reject) {
         // WSDL bereits im Cache?
         var wsdl = SOAPClient_cacheWsdl[url];
-        if(typeof wsdl != "undefined" && wsdl != "" && wsdl != "undefined") {
+        if(wsdl) {
             resolve(wsdl);
         } else {
             // WSDL neu einlesen und in den Cache stellen
+            debug_log("SOAPClient-Read Wsdl: " + url);
             fetch(url + "?wsdl", {
                 method: 'GET',
                 headers: { "Content-type": "text/xml; charset=utf-8" }
@@ -252,6 +254,7 @@ SOAPClient._sendSoapRequest = function(url, method, parameters, wsdl) {
             }
         }).then(function(responseText) {
             if (!responseText || responseText == ""){
+                debug_log("SOAPClient-Result-Error: Leere Antwort");
                 reject(new Error("SOAP-Call: Leere Antwort erhalten."));
             } else {
                 var parser = new Marknote.Parser();
@@ -259,12 +262,15 @@ SOAPClient._sendSoapRequest = function(url, method, parameters, wsdl) {
                 var lRootElement = lResponseXml.getRootElement();
                 var lFaultElements = SOAPClient._getChildElements(lRootElement, "faultstring");
                 if(lFaultElements.length > 0) {
+                    debug_log("SOAPClient-Result-Error: " + lFaultElements[0]);
                     reject(new Error(lFaultElements[0]));
                 } else {
                     var lReturnElements = SOAPClient._getChildElements(lRootElement, "return");
                     if(lReturnElements.length == 0) {
+                        debug_log("SOAPClient-Result-Error: Kein Ergebnis");
                         reject(new Error("SOAP-Call: Kein Ergebnis gefunden."));
                     } else if(lReturnElements.length == 1) {
+                        debug_log("SOAPClient-SingleResult: " + lReturnElements[0]);
                         var lResult = SOAPClient._toObject(lReturnElements[0]);
                         resolve(lResult);
                     } else {
@@ -272,6 +278,7 @@ SOAPClient._sendSoapRequest = function(url, method, parameters, wsdl) {
                         for (var i = 0; i < lReturnElements.length; i++) {
                             lResult.push(SOAPClient._toObject(lReturnElements[i]));
                         };
+                        debug_log("SOAPClient-ArrayResult: " + lResult.length + " Elemente");
                         resolve(lResult);
                     }
                 }   

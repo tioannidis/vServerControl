@@ -1,0 +1,23 @@
+<Panel ux:Class="FaIconButton" ux:Name="root" TextAlignment="Center" FontSize="16" IconSize="20" TextColor="#FFFFFF" HitTestMode="LocalBoundsAndChildren" Margin="5" >
+
+	<string ux:Property="Icon" />
+	<string ux:Property="Text" />
+	<float ux:Property="FontSize" />
+	<float ux:Property="IconSize" />
+	<float4 ux:Property="TextColor" />
+	<Alignment ux:Property="TextAlignment" />
+
+	<DockPanel Alignment="{Property root.TextAlignment}" >
+		<Text Margin="10" Font="fontawesome" Value="{Property root.Icon}" Dock="Left" Alignment="CenterLeft" TextColor="{Property root.TextColor}" FontSize="{Property root.IconSize}" />
+		<Text Margin="0,10,10,10" Value="{Property root.Text}" Alignment="CenterLeft" TextColor="{Property root.TextColor}" FontSize="{Property root.FontSize}" />
+	</DockPanel>
+
+	<Rectangle CornerRadius="5" Fill="#039BE5" ux:Name="backgroundRectangle">
+	    <DropShadow />
+	</Rectangle>
+
+	<WhilePressed>
+		<Scale Target="root" Factor="0.95" Duration="0.05" />
+	</WhilePressed>
+
+</Panel>

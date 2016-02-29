@@ -1,41 +1,48 @@
 <StackPanel ux:Class="Sidebar" Background="#212831">
 
 	<JavaScript>
+		var Aspect = require("Aspect");
 		var Observable = require("FuseJS/Observable");
 		var Navigation = require("Navigation");
+		var Storage = require('FuseJS/Storage');
 		var UserSession = require("UserSession");
 
-		var loggedInVisibilityCollapsed = Observable("Visible");
-		var loggedInVisibilityVisible = Observable("Collapsed");
-
-		UserSession.loggedIn.addSubscriber(function(){
-			if(UserSession.loggedIn.value){
-				loggedInVisibilityCollapsed.value="Collapsed";
-				loggedInVisibilityVisible.value="Visible";
-			}else{
-				loggedInVisibilityCollapsed.value="Visible";
-				loggedInVisibilityVisible.value="Collapsed";
-			}
-		});
-
 		var doLogout = function() {
+            debug_log("Sidebar-doLogout");
 			UserSession.clear();
+			Storage.deleteSync("logindata.txt");
 			Navigation.navigateToLogin();
 		};
 
 		module.exports = {
 			doLogout: doLogout,
-			loggedInVisibilityCollapsed: loggedInVisibilityCollapsed,
-			loggedInVisibilityVisible: loggedInVisibilityVisible,
+			landscape: Aspect.landscape,
+			loggedIn: UserSession.loggedIn,
 			navigateToLogin: Navigation.navigateToLogin,
-			navigateToServerlist: Navigation.navigateToServerlist
+			navigateToServerlist: Navigation.navigateToServerliste
 		};
 	</JavaScript>
 
-	<Button Text="Login" Visibility="{loggedInVisibilityCollapsed}" Alignment="Center" Clicked="{navigateToLogin}" />
+	<WhileTrue Value="{loggedIn}">
+		<Change loginButton.Visibility="Collapsed" />
+		<Change logoutButton.Visibility="Visible" />
+	</WhileTrue>
+	<FaIconButton Icon="&#xf090;" Text="Login" ux:Name="loginButton" Alignment="Center" TextAlignment="Left" Width="150" >
+		<Clicked Handler="{navigateToLogin}" />
+	</FaIconButton>
 
-	<Button Text="Server Liste" Visibility="{loggedInVisibilityVisible}" Alignment="Center" Clicked="{navigateToServerlist}" />
+	<WhileFalse Value="{loggedIn}">
+		<Change serverListButton.Visibility="Collapsed" />
+	</WhileFalse>
+	<WhileTrue Value="{landscape}">
+		<Change serverListButton.Visibility="Collapsed" />
+	</WhileTrue>
+	<FaIconButton Icon="&#xf03a;" Text="Serverliste" ux:Name="serverListButton" Alignment="Center" TextAlignment="Left" Width="150" >
+		<Clicked Handler="{navigateToServerlist}" />
+	</FaIconButton>
 
-	<Button Text="Logout" Visibility="{loggedInVisibilityVisible}" Alignment="Center" Clicked="{doLogout}" />
+	<FaIconButton Icon="&#xf08b;" Text="Logout" ux:Name="logoutButton" Alignment="Center" TextAlignment="Left" Width="150" Visibility="Collapsed" >
+		<Clicked Handler="{doLogout}" />
+	</FaIconButton>
 
 </StackPanel>

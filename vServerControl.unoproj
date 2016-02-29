@@ -3,8 +3,8 @@
     "CacheDirectory": ".uno",
     "OutputDirectory": "$(BuildDirectory)/@(Target)/@(Configuration)",
     "RootNamespace": "$(QIdentifier)",
-    "Version": "2.0.0",
-    "VersionCode": 8,
+    "Version": "2.0.2",
+    "VersionCode": 10,
     "Title": "vServerControl",
     "Icon": "Assets/logo.png",
     "Copyright": "Copyright (C) 2016",
@@ -19,7 +19,7 @@
         "ApplicationLabel": "$(Title)",
         "VersionCode": "$(VersionCode)",
         "VersionName": "$(Version)",
-        "Description": "MyDescription",
+        "Description": "Mit vServer Control lassen sich die eigenen Server von überall aus steuern.",
         "Icons": {
             "LDPI": "$(Icon)",
             "MDPI": "$(Icon)",
@@ -36,8 +36,15 @@
             "CompileVersion": 23,
             "MinVersion": 15,
             "TargetVersion": 19
-        }
-    },
+        },
+        "Key": {
+            "Alias": "vserver control",
+            "AliasPassword": "XXXXXXXXXXXXX",
+            "Store": "AndroidKeyStore.jks",
+            "StorePassword": "XXXXXXXXXXXXX"
+        },
+        "Package": "de.tobiaskahl.vservercontrol"
+      },
     "HTML": {
         "Title": "$(Title)",
         "Favicon": "$(Icon)"
