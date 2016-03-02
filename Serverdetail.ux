@@ -112,7 +112,7 @@
 
     <OnBackButton>
 		<DebugAction Message="BackButton pressed" />
-		<Clicked Handler="{navigateToServerliste}" />
+		<Callback Handler="{navigateToServerliste}" />
 	</OnBackButton>
 	
 	<DockPanel ux:Name="serverContent" Visibility="Collapsed">

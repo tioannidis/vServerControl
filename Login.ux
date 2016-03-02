@@ -30,7 +30,7 @@
 				//
 				UIBlocker.unblock();
 			}, function(error) {
-				debug_log(error);
+				debug_log(error.toString());
 				UIBlocker.unblock();
 				removeAutologin();
 			});
@@ -64,12 +64,12 @@
 					}
 					UIBlocker.unblock();
 				}).catch(function(error) {
-					debug_log(error);
+					debug_log(error.toString());
 					if(pAutoLogin) {
 						removeAutologin();
 					}
 					UIBlocker.unblock();
-					errorTxt.value = err.toString();
+					errorTxt.value = error.toString();
 		        });
 			}	
 		};
