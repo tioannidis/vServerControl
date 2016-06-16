@@ -2,9 +2,9 @@
 	
 	<string ux:Property="Text" />
 
-	<Style>
+	<Panel>
 		<Image MaxHeight="200" MaxWidth="200" Alignment="Center" />
-	</Style>
+	</Panel>
 
 	<Image ux:Class="SmallCog" Color="#3e64b7" File="Assets/cog1_white.png" Width="60" Height="60" />
 	<Image ux:Class="BigCog" Color="#3562c4" File="Assets/cog2_white.png" Width="120" Height="120" />

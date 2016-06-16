@@ -1,4 +1,4 @@
-<App Theme="Basic" Background="#DCDCDC">
+<App Background="#DCDCDC">
 
 	<!-- Font-Import -->
 	<Font File="Assets/fontawesome-webfont.ttf" ux:Global="fontawesome" />

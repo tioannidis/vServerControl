@@ -34,9 +34,9 @@ public class ModalJS : NativeModule
 		var lTitle = new Fuse.Controls.Text();
 		lTitleStackPanel.Children.Add(lTitle);
 		lTitle.Value = pTitle;
-		lTitle.TextWrapping = Fuse.Elements.TextWrapping.Wrap;
+		lTitle.TextWrapping = Fuse.Controls.TextWrapping.Wrap;
 		lTitle.FontSize = 18f;
-		lTitle.TextAlignment = Fuse.Elements.TextAlignment.Left;
+		lTitle.TextAlignment = Fuse.Controls.TextAlignment.Left;
 		lTitle.TextColor = Fuse.Drawing.Colors.Blue;
 		lTitle.Margin = float4(10f, 10f, 10f, 10f);
 		//
@@ -55,9 +55,9 @@ public class ModalJS : NativeModule
 		var lText = new Fuse.Controls.Text();
 		lScrollView.Content = lText;
 		lText.Value = text;
-		lText.TextWrapping = Fuse.Elements.TextWrapping.Wrap;
+		lText.TextWrapping = Fuse.Controls.TextWrapping.Wrap;
 		lText.FontSize = 18f;
-		lText.TextAlignment = Fuse.Elements.TextAlignment.Left;
+		lText.TextAlignment = Fuse.Controls.TextAlignment.Left;
 		lText.TextColor = Fuse.Drawing.Colors.White;
 		lText.Margin = float4(10f, 10f, 10f, 10f);
 		//
@@ -83,7 +83,7 @@ public class ModalJS : NativeModule
 	}
 
 	void ButtonClickHandler (object pSender, Fuse.Gestures.ClickedArgs pArguments) {
-		var lButton = pArguments.Node as Button;
+		var lButton = pSender as Button;
 		running = false;
 		UpdateManager.PostAction(RemoveModalUX);
 		Context.Dispatcher.Invoke(new InvokeEnclosure(callback, lButton.Text).InvokeCallback);
@@ -220,7 +220,7 @@ public class ModalJS : NativeModule
 			return null;
 		}
 		else {
-			myBasePanel = FindPanel(AppBase.Current.RootNode);
+			myBasePanel = FindPanel(AppBase.Current.RootViewport);
 			myUXModal = UXModal(title, body, buttons);
 			UpdateManager.PostAction(AddModalUX);
 			return null;
