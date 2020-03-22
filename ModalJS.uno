@@ -166,7 +166,7 @@ public class ModalJS : NativeModule
 
 		// var alert_uivc = new iOS.UIKit.UIAlertController(alert);
 		//var action = new iOS.UIKit.UIAlertAction();
-		// action.Title = "OK";
+		// action.Title = "OK";...
 
 		var uivc = iOS.UIKit.UIApplication._sharedApplication().KeyWindow.RootViewController;
 		ShowImpl(uivc, alert, s_buttons);
